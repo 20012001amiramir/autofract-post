@@ -94,7 +94,10 @@ const server = http.createServer(async (req, res) => {
     let image = null;
     if (b.image_base64) { image = crypto.randomUUID() + (b.image_ext || ".png"); fs.writeFileSync(path.join(MEDIA_DIR, image), Buffer.from(b.image_base64, "base64")); }
     const card = { id: crypto.randomUUID(), created_at: new Date().toISOString(), status: "pending",
-      source: b.source || "manual", fact: b.fact || "", linkedin: b.linkedin || "", bluesky: b.bluesky || "", image, post_at: b.post_at || null };
+      source: b.source || "manual", fact: b.fact || "",
+      linkedin: b.linkedin || "", bluesky: b.bluesky || "",
+      linkedin_ru: b.linkedin_ru || "", bluesky_ru: b.bluesky_ru || "",
+      image, post_at: b.post_at || null };
     cards.unshift(card); save(cards);
     return send(res, 200, { ok: true, id: card.id });
   }
@@ -140,6 +143,7 @@ main{max-width:760px;margin:0 auto;padding:24px}
 .net{padding:12px 16px;border-top:1px dashed var(--line)}
 .net h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;color:var(--muted)}
 .net textarea{width:100%;border:1px solid var(--line);padding:8px;font:inherit;resize:vertical;min-height:64px;background:#fff}
+.ru{margin-top:8px;padding:9px 11px;background:#f3efe6;border-left:3px solid var(--pink);font-size:13.5px;color:#5b525f;white-space:pre-wrap;line-height:1.45}
 .row{display:flex;gap:8px;padding:14px 16px;border-top:2px solid var(--ink)}
 button{font:inherit;font-weight:700;padding:9px 16px;border:2px solid var(--ink);background:#fff;cursor:pointer}
 button:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
@@ -158,8 +162,8 @@ async function load(){
   app.innerHTML=cards.map(c=>\`<div class="card" data-id="\${esc(c.id)}">
     \${c.image?\`<img src="/media/\${encodeURIComponent(c.image)}">\`:''}
     <div class="meta"><span class="tag">\${esc(c.source)}</span> \${c.fact?('· '+esc(c.fact)):''}</div>
-    <div class="net"><h4>LinkedIn</h4><textarea data-net="linkedin">\${esc(c.linkedin)}</textarea></div>
-    <div class="net"><h4>Bluesky <span style="color:#847a8c">(≤300)</span></h4><textarea data-net="bluesky">\${esc(c.bluesky)}</textarea></div>
+    <div class="net"><h4>LinkedIn</h4><textarea data-net="linkedin">\${esc(c.linkedin)}</textarea>\${c.linkedin_ru?\`<div class="ru">🇷🇺 \${esc(c.linkedin_ru)}</div>\`:''}</div>
+    <div class="net"><h4>Bluesky <span style="color:#847a8c">(≤300)</span></h4><textarea data-net="bluesky">\${esc(c.bluesky)}</textarea>\${c.bluesky_ru?\`<div class="ru">🇷🇺 \${esc(c.bluesky_ru)}</div>\`:''}</div>
     <div class="row">
       <button class="ok" onclick="approve('\${c.id}',this)">Approve → schedule</button>
       <button onclick="saveEdit('\${c.id}',this)">Save edits</button>
