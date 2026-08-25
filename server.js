@@ -55,10 +55,13 @@ async function uploadMedia(filePath) {
   const fields = init.json?.fields || {};
   if (!uploadId || !action) throw new Error("upload/init failed: " + JSON.stringify(init.json || init.text));
   const form = new FormData();
-  for (const [k, v] of Object.entries(fields)) form.append(k, String(v));
-  form.append("file", new Blob([buf]), path.basename(filePath));
+  // Postmypost returns fields as an ARRAY of {key,value} (not an object); `key` must be present and first.
+  const entries = Array.isArray(fields) ? fields.map((f) => [f.key, f.value]) : Object.entries(fields);
+  for (const [k, v] of entries) form.append(k, String(v));
+  const ct = path.extname(filePath).toLowerCase() === ".mp4" ? "video/mp4" : "image/png";
+  form.append("file", new Blob([buf], { type: ct }), path.basename(filePath));
   const s3 = await fetch(action, { method: "POST", body: form });
-  if (!s3.ok) throw new Error("S3 upload failed: " + s3.status);
+  if (!s3.ok) throw new Error("S3 upload failed: " + s3.status + " " + (await s3.text()).slice(0, 200));
   await pmp(`/upload/complete?id=${uploadId}`, { method: "POST" });
   for (let i = 0; i < 20; i++) {
     await new Promise((r) => setTimeout(r, 3000));
