@@ -199,9 +199,10 @@ details.txt pre{white-space:pre-wrap;font:13px/1.5 -apple-system,Segoe UI,Roboto
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const NET={2237330:'LinkedIn',2237336:'Bluesky'};
-const ST={1:['draft','st-wait'],2:['processing','st-wait'],3:['posted','st-posted'],4:['failed','st-failed'],5:['scheduled','st-scheduled'],6:['publishing','st-wait']};
+const ST={1:['posted','st-posted'],2:['publishing','st-wait'],3:['failed','st-failed'],4:['removed','st-wait'],5:['scheduled','st-scheduled'],6:['draft','st-wait']};
 function fmt(t){if(!t)return'';try{return new Date(t).toLocaleString('ru-RU',{timeZone:'Europe/Moscow',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+' МСК';}catch(e){return String(t);}}
-function badge(net,code){const s=ST[code]||['status '+code,'st-wait'];return \`<span class="bdg \${s[1]}"><span class="net">\${esc(net)}</span> \${s[0]}</span>\`;}
+function pstat(p){if(p.external_id||p.url)return['posted','st-posted'];return ST[p.post_status]||['status '+p.post_status,'st-wait'];}
+function badge(net,p){const s=pstat(p);const b=\`<span class="bdg \${s[1]}"><span class="net">\${esc(net)}</span> \${s[0]}</span>\`;return p.url?\`<a href="\${esc(p.url)}" target="_blank" rel="noopener" style="text-decoration:none">\${b}</a>\`:b;}
 
 async function load(){
   const [cards,pubs]=await Promise.all([
@@ -226,9 +227,9 @@ async function load(){
 function tally(done,pubs){
   let sched=0,posted=0,failed=0;
   for(const c of done){const pub=pubs[c.pub_id];
-    if(pub&&pub.posts&&pub.posts.length){const codes=pub.posts.map(p=>p.post_status);
-      if(codes.some(x=>x===4)||c.status==='error')failed++;
-      else if(codes.every(x=>x===3))posted++; else sched++;
+    if(pub&&pub.posts&&pub.posts.length){const cls=pub.posts.map(p=>pstat(p)[1]);
+      if(cls.some(x=>x==='st-failed')||c.status==='error')failed++;
+      else if(cls.every(x=>x==='st-posted'))posted++; else sched++;
     } else if(c.status==='error')failed++; else sched++;
   }
   return [sched&&sched+' scheduled',posted&&posted+' posted',failed&&failed+' failed'].filter(Boolean).join(' · ')||String(done.length);
@@ -236,7 +237,7 @@ function tally(done,pubs){
 function statusCard(c,pubs){
   const pub=pubs[c.pub_id];
   let badges;
-  if(pub&&pub.posts&&pub.posts.length) badges=pub.posts.map(p=>badge(NET[p.account_id]||('acct '+p.account_id),p.post_status)).join('');
+  if(pub&&pub.posts&&pub.posts.length) badges=pub.posts.map(p=>badge(NET[p.account_id]||('acct '+p.account_id),p)).join('');
   else if(c.status==='error') badges='<span class="bdg st-failed">error</span>';
   else badges=\`<span class="bdg st-scheduled">\${esc(c.status)}</span>\`;
   const when=fmt((pub&&pub.post_at)||c.scheduled_for||c.post_at);
