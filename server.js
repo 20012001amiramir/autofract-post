@@ -181,6 +181,7 @@ button:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
 .section-h:first-child{margin-top:6px}
 .scard{background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);margin-bottom:14px;padding:13px 16px 15px}
 .scard .when{font-size:12.5px;color:var(--muted);margin:5px 0 9px}
+.thumb{width:100%;max-width:300px;display:block;border:1.5px solid var(--ink);margin:10px 0 2px}
 .badges{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .bdg{display:inline-flex;gap:6px;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border:1.5px solid var(--ink)}
 .bdg .net{opacity:.55;font-weight:600}
@@ -245,6 +246,7 @@ function statusCard(c,pubs){
   return \`<div class="scard">
     <div class="meta"><span class="tag">\${esc(c.source)}</span> \${c.fact?('· '+esc(c.fact)):''}</div>
     \${when?\`<div class="when">🗓 \${esc(when)}</div>\`:''}
+    \${c.image?\`<img class="thumb" src="/media/\${encodeURIComponent(c.image)}">\`:''}
     <div class="badges">\${badges}</div>\${err}
     <details class="txt"><summary>view text</summary><pre>LinkedIn:
 \${esc(c.linkedin)}
