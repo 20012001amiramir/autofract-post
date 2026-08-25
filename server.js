@@ -80,6 +80,19 @@ async function publish(card) {
   if (!pub.ok) throw new Error("publications failed: " + JSON.stringify(pub.json || pub.text));
   return { pub_id: pub.json?.id, post_at: postAt };
 }
+// Live status: pull every publication for the project, keyed by id, so the dashboard can show
+// per-network state (scheduled → posted / failed) straight from Postmypost.
+async function pmpPublications() {
+  const map = {};
+  let page = 1, pages = 1;
+  do {
+    const r = await pmp(`/publications?project_id=${PMP_PROJECT}&page=${page}`);
+    for (const pub of r.json?.data || []) map[pub.id] = pub;
+    pages = r.json?.pages?.total_pages || 1;
+    page++;
+  } while (page <= pages && page <= 20);
+  return map;
+}
 
 // ── HTTP ──────────────────────────────────────────────────────────────────────
 const server = http.createServer(async (req, res) => {
@@ -115,6 +128,9 @@ const server = http.createServer(async (req, res) => {
 
   if (p === "/" ) return send(res, 200, PAGE, "text/html; charset=utf-8");
   if (p === "/api/cards" && req.method === "GET") return send(res, 200, load());
+  if (p === "/api/status" && req.method === "GET") {
+    try { return send(res, 200, await pmpPublications()); } catch { return send(res, 200, {}); }
+  }
   if (p.startsWith("/media/")) {
     const f = path.join(MEDIA_DIR, path.basename(p));
     if (fs.existsSync(f)) { res.writeHead(200, { "Content-Type": "image/png" }); return fs.createReadStream(f).pipe(res); }
@@ -126,7 +142,10 @@ const server = http.createServer(async (req, res) => {
     const cards = load();
     const card = cards.find((c) => c.id === id);
     if (!card) return send(res, 404, { error: "not found" });
-    if (action === "kill") { card.status = "killed"; save(cards); return send(res, 200, { ok: true }); }
+    if (action === "kill") {
+      if (card.pub_id && card.status === "scheduled") { try { await pmp(`/publications/${card.pub_id}`, { method: "DELETE" }); } catch {} }
+      card.status = "killed"; save(cards); return send(res, 200, { ok: true });
+    }
     if (action === "edit") { const b = await readBody(req); if (b.linkedin != null) card.linkedin = b.linkedin; if (b.bluesky != null) card.bluesky = b.bluesky; save(cards); return send(res, 200, { ok: true }); }
     if (action === "approve") {
       try { const r = await publish(card); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; save(cards); return send(res, 200, { ok: true, ...r }); }
@@ -156,18 +175,86 @@ main{max-width:760px;margin:0 auto;padding:24px}
 button{font:inherit;font-weight:700;padding:9px 16px;border:2px solid var(--ink);background:#fff;cursor:pointer}
 button:hover{transform:translate(-1px,-1px);box-shadow:3px 3px 0 var(--ink)}
 .ok{background:var(--good);color:#fff;border-color:var(--good)}.no{color:var(--bad)}
-.empty{color:var(--muted);text-align:center;padding:60px 0}
+.empty{color:var(--muted);text-align:center;padding:40px 0}
 .tag{display:inline-block;font-size:11px;padding:2px 8px;border:1px solid var(--ink);text-transform:uppercase}
+.section-h{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:34px 0 16px;padding-bottom:7px;border-bottom:1px solid var(--line)}
+.section-h:first-child{margin-top:6px}
+.scard{background:#fff;border:2px solid var(--ink);box-shadow:3px 3px 0 var(--ink);margin-bottom:14px;padding:13px 16px 15px}
+.scard .when{font-size:12.5px;color:var(--muted);margin:5px 0 9px}
+.badges{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bdg{display:inline-flex;gap:6px;align-items:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;padding:3px 9px;border:1.5px solid var(--ink)}
+.bdg .net{opacity:.55;font-weight:600}
+.st-posted{background:var(--good);color:#fff;border-color:var(--good)}
+.st-scheduled{background:#fbeee7}
+.st-failed{background:var(--bad);color:#fff;border-color:var(--bad)}
+.st-wait{background:#efeadf}
+details.txt{margin-top:11px}
+details.txt summary{cursor:pointer;color:var(--pink);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.03em}
+details.txt pre{white-space:pre-wrap;font:13px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;background:#f7f3ea;padding:11px 13px;border-left:3px solid var(--line);margin:9px 0 0}
+.klist{color:var(--muted);font-size:12.5px;margin-top:4px}
 </style></head><body>
 <header><b>Autofract</b><span>content queue — approve → LinkedIn + Bluesky</span></header>
 <main id="app"><div class="empty">loading…</div></main>
 <script>
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const NET={2237330:'LinkedIn',2237336:'Bluesky'};
+const ST={1:['draft','st-wait'],2:['processing','st-wait'],3:['posted','st-posted'],4:['failed','st-failed'],5:['scheduled','st-scheduled'],6:['publishing','st-wait']};
+function fmt(t){if(!t)return'';try{return new Date(t).toLocaleString('ru-RU',{timeZone:'Europe/Moscow',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+' МСК';}catch(e){return String(t);}}
+function badge(net,code){const s=ST[code]||['status '+code,'st-wait'];return \`<span class="bdg \${s[1]}"><span class="net">\${esc(net)}</span> \${s[0]}</span>\`;}
+
 async function load(){
-  const cards=(await (await fetch('/api/cards')).json()).filter(c=>c.status==='pending');
-  if(!cards.length){app.innerHTML='<div class="empty">queue is empty — ask the assistant to fill some cards.</div>';return;}
-  app.innerHTML=cards.map(c=>\`<div class="card" data-id="\${esc(c.id)}">
+  const [cards,pubs]=await Promise.all([
+    fetch('/api/cards').then(r=>r.json()).catch(()=>[]),
+    fetch('/api/status').then(r=>r.json()).catch(()=>({}))
+  ]);
+  const pending=cards.filter(c=>c.status==='pending');
+  const done=cards.filter(c=>c.status==='scheduled'||c.status==='error'||c.status==='posted');
+  const killed=cards.filter(c=>c.status==='killed');
+  let html=\`<div class="section-h"><span>Queue — needs approval</span><span>\${pending.length}</span></div>\`;
+  html+= pending.length ? pending.map(queueCard).join('') : '<div class="empty">queue is empty — ask the assistant to fill some cards.</div>';
+  if(done.length){
+    html+=\`<div class="section-h"><span>Scheduled &amp; posted</span><span>\${tally(done,pubs)}</span></div>\`;
+    html+=done.map(c=>statusCard(c,pubs)).join('');
+  }
+  if(killed.length){
+    html+=\`<div class="section-h"><span>Killed</span><span>\${killed.length}</span></div>\`;
+    html+=killed.map(c=>\`<div class="scard"><div class="meta"><span class="tag">\${esc(c.source)}</span> \${c.fact?('· '+esc(c.fact)):''}</div><div class="klist">killed — removed from schedule</div></div>\`).join('');
+  }
+  app.innerHTML=html;
+}
+function tally(done,pubs){
+  let sched=0,posted=0,failed=0;
+  for(const c of done){const pub=pubs[c.pub_id];
+    if(pub&&pub.posts&&pub.posts.length){const codes=pub.posts.map(p=>p.post_status);
+      if(codes.some(x=>x===4)||c.status==='error')failed++;
+      else if(codes.every(x=>x===3))posted++; else sched++;
+    } else if(c.status==='error')failed++; else sched++;
+  }
+  return [sched&&sched+' scheduled',posted&&posted+' posted',failed&&failed+' failed'].filter(Boolean).join(' · ')||String(done.length);
+}
+function statusCard(c,pubs){
+  const pub=pubs[c.pub_id];
+  let badges;
+  if(pub&&pub.posts&&pub.posts.length) badges=pub.posts.map(p=>badge(NET[p.account_id]||('acct '+p.account_id),p.post_status)).join('');
+  else if(c.status==='error') badges='<span class="bdg st-failed">error</span>';
+  else badges=\`<span class="bdg st-scheduled">\${esc(c.status)}</span>\`;
+  const when=fmt((pub&&pub.post_at)||c.scheduled_for||c.post_at);
+  const err=c.error?\`<div class="klist" style="color:var(--bad)">\${esc(c.error)}</div>\`:'';
+  return \`<div class="scard">
+    <div class="meta"><span class="tag">\${esc(c.source)}</span> \${c.fact?('· '+esc(c.fact)):''}</div>
+    \${when?\`<div class="when">🗓 \${esc(when)}</div>\`:''}
+    <div class="badges">\${badges}</div>\${err}
+    <details class="txt"><summary>view text</summary><pre>LinkedIn:
+\${esc(c.linkedin)}
+
+— — —
+
+Bluesky:
+\${esc(c.bluesky)}</pre></details>
+  </div>\`;
+}
+function queueCard(c){return \`<div class="card" data-id="\${esc(c.id)}">
     \${c.image?\`<img src="/media/\${encodeURIComponent(c.image)}">\`:''}
     <div class="meta"><span class="tag">\${esc(c.source)}</span> \${c.fact?('· '+esc(c.fact)):''}</div>
     <div class="net"><h4>LinkedIn</h4><textarea data-net="linkedin">\${esc(c.linkedin)}</textarea>\${c.linkedin_ru?\`<div class="ru">🇷🇺 \${esc(c.linkedin_ru)}</div>\`:''}</div>
@@ -176,11 +263,10 @@ async function load(){
       <button class="ok" onclick="approve('\${c.id}',this)">Approve → schedule</button>
       <button onclick="saveEdit('\${c.id}',this)">Save edits</button>
       <button class="no" onclick="kill('\${c.id}',this)">Kill</button>
-    </div></div>\`).join('');
-}
+    </div></div>\`;}
 function texts(id){const el=document.querySelector('.card[data-id="'+id+'"]');return{linkedin:el.querySelector('[data-net=linkedin]').value,bluesky:el.querySelector('[data-net=bluesky]').value};}
 async function saveEdit(id,b){b.textContent='saving…';await fetch('/api/cards/'+id+'/edit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(texts(id))});b.textContent='saved ✓';}
 async function approve(id,b){await saveEdit(id,{textContent:''});b.textContent='scheduling…';const r=await fetch('/api/cards/'+id+'/approve',{method:'POST'});const j=await r.json();if(r.ok){b.textContent='scheduled ✓';setTimeout(load,600);}else{b.textContent='error: '+(j.error||'').slice(0,60);}}
 async function kill(id,b){if(!confirm('Kill this card?'))return;await fetch('/api/cards/'+id+'/kill',{method:'POST'});load();}
-load();setInterval(load,15000);
+load();setInterval(()=>{if(!document.hidden)load();},15000);
 </script></body></html>`;
