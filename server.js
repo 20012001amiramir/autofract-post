@@ -102,6 +102,14 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { ok: true, id: card.id });
   }
 
+  // Public brand reference assets (character / server model sheets, reference clips) — served
+  // openly so they can be reused as image references in future generations. No secrets, just art.
+  if (p.startsWith("/assets/") && req.method === "GET") {
+    const f = path.join(DATA_DIR, "assets", path.basename(p));
+    if (fs.existsSync(f)) { const ext = path.extname(f).toLowerCase(); res.writeHead(200, { "Content-Type": ext === ".mp4" ? "video/mp4" : ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png" }); return fs.createReadStream(f).pipe(res); }
+    return send(res, 404, "not found", "text/plain");
+  }
+
   // Everything below is the human dashboard — IP gated.
   if (!ipOk(req)) return send(res, 403, `forbidden — your IP ${clientIp(req)} is not allowed. add it to ALLOWED_IPS.`, "text/plain");
 
