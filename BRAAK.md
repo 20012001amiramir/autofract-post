@@ -29,6 +29,23 @@ Style: popular non-AI-looking 3D (Pixar-adjacent) but de-slopped — film grain,
 asymmetric, character smaller in frame so the *message* (the thing on CORE's screen, the product,
 the words) reads first. BRAAK is never the whole point; he's the reaction to it.
 
+## Shot language (never ship the same frame twice)
+
+The #1 failure mode is **"two toys on a shelf"**: BRAAK left, CORE right, eye-level, full-body,
+empty dark studio — every single time. It reads as one photo with the props swapped. Kill it. The
+neutral charsheet reference fixes the *design*; it must NOT fix the *staging*. Each image varies at
+least three of these axes from recent posts:
+
+- **Shot size** — extreme close-up (a face filling the frame) · close · medium · wide · epic establishing.
+- **Camera angle** — low hero · high/overhead · dutch tilt · over-the-shoulder · POV · eye-level (used sparingly).
+- **Environment** — never default to empty studio. Data-center hall, tangled-cable jungle, a cluttered desk, a burning server room, inside a screen, a night rooftop, a control room. The set tells half the story.
+- **Action & motion** — mid-run, mid-smash, falling, dust / sparks / debris / motion blur. Dynamism over static posing.
+- **Cast & scale** — sometimes both, sometimes BRAAK solo, sometimes CORE solo; play scale hard (tiny BRAAK vs a giant calm CORE, or BRAAK looming huge).
+- **Color & mood** — red-alarm, calm-green, cold night-blue, warm. One dominant accent per frame.
+
+Write the prompt as a real shot: name the lens, the angle, the environment, the motion. Feed the
+charsheet URL for design consistency, but do not describe a studio unless the studio *is* the joke.
+
 ## Voice
 
 - **BRAAK**: ALL-CAPS-ish, present tense, broken grammar, third-person. "BRAAK SMASH DEPLOY.
