@@ -31,6 +31,12 @@ The heroes are our products. Each has a fixed voice and a domain BRAAK attacks:
 **VideoLinker** 🟧 (AI video-production platform) is the fourth product — held back until we do
 video. When we do, VideoLinker literally *makes* our video posts (product = the content = the joke).
 
+**The Human** 🧑 — our recurring everyperson protagonist. A lovable, quirky, STYLIZED-3D underdog
+(tall messy curly hair, big round glasses, big nose, gap-toothed grin, freckles, mustard hoodie) —
+the same character in every scene. He's the person on the other end: the one BRAAK torments and the
+products quietly save, and the one the audience roots for. The WHOLE cast — mascots and human — lives
+in ONE cohesive 3D-animated world (no photoreal people; everything is animated).
+
 Heroes always speak lowercase, dry, **one line**. They win by stating a single real fact/capability.
 Sometimes a hero honestly admits what it *can't* fix — that's likable, not weak.
 
@@ -78,6 +84,7 @@ Cadence: 3–5×/week, short committed swings. Skip if the idea isn't original �
 - pathcore → hero `https://studio.autofract.com/assets/cast-pathcore.png` · turnaround `https://studio.autofract.com/assets/sheet-pathcore.png`
 - frontdesk → hero `https://studio.autofract.com/assets/cast-frontdesk.png` · turnaround `https://studio.autofract.com/assets/sheet-frontdesk.png`
 - relocating → hero `https://studio.autofract.com/assets/cast-relocating.png` · turnaround `https://studio.autofract.com/assets/sheet-relocating.png`
+- the Human → `https://studio.autofract.com/assets/cast-human.png` · expressions `https://studio.autofract.com/assets/hsheet.png`
 
 Design law learned: **keep them simple like BRAAK** — one clean silhouette + 1–2 signature details, no prop/gadget overload; and heroes must stay visually distinct from BRAAK (never a furry horned monster) so villain ≠ hero.
 
