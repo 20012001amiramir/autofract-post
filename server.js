@@ -73,7 +73,7 @@ async function uploadMedia(filePath) {
 // Every post carries a way to find the service. Footer is product-aware, derived from card.source
 // (e.g. "relocating-monaco" -> relocating.app). Intro/pinned posts carry their own links in-body, so
 // they are skipped. Bluesky footer is terse and only added if it fits the 300-char limit.
-const PRODUCT_URL = { relocating: "relocating.app", frontdesk: "frontdeskreview.com", pathcore: "autofract.com" };
+const PRODUCT_URL = { relocating: "relocating.app", frontdesk: "frontdeskreview.com", pathcore: "autofract.com", redline: "redline.autofract.com" };
 function footerFor(source, net) {
   const key = (source || "").split("-")[0];
   if (["pinned", "cast", "intro"].includes(key)) return "";
@@ -245,7 +245,7 @@ details.txt pre{white-space:pre-wrap;font:13px/1.5 -apple-system,Segoe UI,Roboto
 <script>
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-const PURL={relocating:'relocating.app',frontdesk:'frontdeskreview.com',pathcore:'autofract.com'};
+const PURL={relocating:'relocating.app',frontdesk:'frontdeskreview.com',pathcore:'autofract.com',redline:'redline.autofract.com'};
 function linkNote(source){const k=(source||'').split('-')[0];if(['pinned','cast','intro'].includes(k))return '';const u=PURL[k]||'autofract.com';return u==='autofract.com'?'→ autofract.com':('→ '+u+' · autofract.com');}
 const NET={2237330:'LinkedIn',2237336:'Bluesky'};
 const ST={1:['posted','st-posted'],2:['publishing','st-wait'],3:['failed','st-failed'],4:['removed','st-wait'],5:['scheduled','st-scheduled'],6:['draft','st-wait']};
