@@ -27,6 +27,7 @@ The heroes are our products. Each has a fixed voice and a domain BRAAK attacks:
 | **pathcore** 🟢 teal | self-healing engine | crashes, outages, chaos | auto-rollback, circuit breakers, a chaos engine that *trains on failure* so it only gets sturdier | calm, unkillable, faintly amused — "healed before you refreshed." |
 | **frontdesk** 🟩 green | the price of record | fake prices, lies, manipulated reviews | every price sourced + dated on a tamper-proof log; a second agent refutes every claim; unproven numbers never ship | deadpan auditor with receipts — "the receipt says $19. dated tuesday." |
 | **relocating** 🟦 sky | the relocation guide | scary/confusing moving — visa, cost, language | real visa rules, real costs, 50 countries, YOUR language of 21, free | calm, seen-it-all guide — "or 49 other countries." |
+| **redline** 🟥 red | the fine print, decoded | buried clauses, auto-renewals, "we can change this anytime", arbitration traps | reads every clause, quotes the exact trap verbatim, and a second reviewer refutes every flag before it ships — nothing unproven ever appears | calm proofreader, dry, one line, cites the clause — "page 88, clause 47.3. flagged it before you scrolled." |
 
 **VideoLinker** 🟧 (AI video-production platform) is the fourth product — held back until we do
 video. When we do, VideoLinker literally *makes* our video posts (product = the content = the joke).
@@ -84,9 +85,10 @@ Cadence: 3–5×/week, short committed swings. Skip if the idea isn't original �
 - pathcore → hero `https://studio.autofract.com/assets/cast-pathcore.png` · turnaround `https://studio.autofract.com/assets/sheet-pathcore.png`
 - frontdesk → hero `https://studio.autofract.com/assets/cast-frontdesk.png` · turnaround `https://studio.autofract.com/assets/sheet-frontdesk.png`
 - relocating → hero `https://studio.autofract.com/assets/cast-relocating.png` · turnaround `https://studio.autofract.com/assets/sheet-relocating.png`
+- redline → hero `https://studio.autofract.com/assets/cast-redline.png` · turnaround `https://studio.autofract.com/assets/sheet-redline.png`
 - the Human → `https://studio.autofract.com/assets/cast-human.png` · expressions `https://studio.autofract.com/assets/hsheet.png`
 
-Design law learned: **keep them simple like BRAAK** — one clean silhouette + 1–2 signature details, no prop/gadget overload; and heroes must stay visually distinct from BRAAK (never a furry horned monster) so villain ≠ hero.
+Design law learned: **keep them simple like BRAAK** — one clean silhouette + 1–2 signature details, no prop/gadget overload; and heroes must stay visually distinct from BRAAK (never a furry horned monster) so villain ≠ hero. Redline's look: a tall slim stack of cream paper with a folded corner, dot eyes, a brass loupe on the left eye, ONE red marker stroke across the chest, a chunky red marker in hand — never a monster, never a machine; it is the document that read itself.
 
 Style: cinematic 3D animated feature-film, de-slopped (film grain, muted grade, asymmetric). See the
 shot-language rules below — never ship the same frame twice.
