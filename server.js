@@ -87,10 +87,24 @@ function withFooter(content, source, net, cap) {
   if (cap && content.length + f.length > cap) return content;
   return content + f;
 }
-async function publish(card) {
+// Cadence: chain each new post one day after the latest already-scheduled slot,
+// so approving a batch drips out one per day instead of firing all at once.
+// The first post of an empty queue goes ~now; every later approval lands +1 day
+// after the previous one and keeps its time-of-day.
+function nextSlot(cards) {
+  const DAY = 86400000;
+  const times = (cards || [])
+    .map((c) => c.scheduled_for || c.post_at)
+    .map((t) => Date.parse(t))
+    .filter((n) => Number.isFinite(n));
+  const base = times.length ? Math.max(...times) : 0;
+  const next = Math.max(base + DAY, Date.now() + 5 * 60000);
+  return new Date(next).toISOString().replace(/\.\d+Z$/, "+00:00");
+}
+async function publish(card, cards) {
   let fileIds = [];
   if (card.image) fileIds = [await uploadMedia(path.join(MEDIA_DIR, card.image))];
-  const postAt = card.post_at || new Date(Date.now() + 5 * 60000).toISOString().replace(/\.\d+Z$/, "+00:00");
+  const postAt = card.post_at || nextSlot(cards);
   const details = [];
   if (card.linkedin?.trim()) details.push({ account_id: ACCT_LINKEDIN, publication_type: 1, content: withFooter(card.linkedin, card.source, "li"), ...(fileIds.length ? { file_ids: fileIds } : {}) });
   if (card.bluesky?.trim()) details.push({ account_id: ACCT_BLUESKY, publication_type: 1, content: withFooter(card.bluesky, card.source, "bs", 300), ...(fileIds.length ? { file_ids: fileIds } : {}) });
@@ -168,7 +182,7 @@ const server = http.createServer(async (req, res) => {
     }
     if (action === "edit") { const b = await readBody(req); if (b.linkedin != null) card.linkedin = b.linkedin; if (b.bluesky != null) card.bluesky = b.bluesky; save(cards); return send(res, 200, { ok: true }); }
     if (action === "approve") {
-      try { const r = await publish(card); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; save(cards); return send(res, 200, { ok: true, ...r }); }
+      try { const r = await publish(card, cards); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; save(cards); return send(res, 200, { ok: true, ...r }); }
       catch (e) { card.status = "error"; card.error = String(e.message || e); save(cards); return send(res, 500, { error: card.error }); }
     }
   }
