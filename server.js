@@ -170,7 +170,7 @@ const server = http.createServer(async (req, res) => {
     if (fs.existsSync(f)) { res.writeHead(200, { "Content-Type": "image/png" }); return fs.createReadStream(f).pipe(res); }
     return send(res, 404, "not found", "text/plain");
   }
-  const m = p.match(/^\/api\/cards\/([^/]+)\/(approve|kill|edit)$/);
+  const m = p.match(/^\/api\/cards\/([^/]+)\/(approve|kill|edit|reschedule)$/);
   if (m && req.method === "POST") {
     const [, id, action] = m;
     const cards = load();
@@ -182,6 +182,18 @@ const server = http.createServer(async (req, res) => {
     }
     if (action === "edit") { const b = await readBody(req); if (b.linkedin != null) card.linkedin = b.linkedin; if (b.bluesky != null) card.bluesky = b.bluesky; save(cards); return send(res, 200, { ok: true }); }
     if (action === "approve") {
+      const b = await readBody(req).catch(() => ({}));
+      if (b && b.post_at) card.post_at = b.post_at; // explicit slot overrides the drip cadence
+      try { const r = await publish(card, cards); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; save(cards); return send(res, 200, { ok: true, ...r }); }
+      catch (e) { card.status = "error"; card.error = String(e.message || e); save(cards); return send(res, 500, { error: card.error }); }
+    }
+    // Move an already-scheduled (not yet posted) card to a new slot: drop the old
+    // publication, re-create at the given post_at. Posted cards can't be moved.
+    if (action === "reschedule") {
+      const b = await readBody(req).catch(() => ({}));
+      if (!b || !b.post_at) return send(res, 400, { error: "post_at required" });
+      if (card.pub_id && card.status === "scheduled") { try { await pmp(`/publications/${card.pub_id}`, { method: "DELETE" }); } catch {} }
+      card.post_at = b.post_at;
       try { const r = await publish(card, cards); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; save(cards); return send(res, 200, { ok: true, ...r }); }
       catch (e) { card.status = "error"; card.error = String(e.message || e); save(cards); return send(res, 500, { error: card.error }); }
     }
