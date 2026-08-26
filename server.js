@@ -70,13 +70,30 @@ async function uploadMedia(filePath) {
   }
   throw new Error("upload never became ready");
 }
+// Every post carries a way to find the service. Footer is product-aware, derived from card.source
+// (e.g. "relocating-monaco" -> relocating.app). Intro/pinned posts carry their own links in-body, so
+// they are skipped. Bluesky footer is terse and only added if it fits the 300-char limit.
+const PRODUCT_URL = { relocating: "relocating.app", frontdesk: "frontdeskreview.com", pathcore: "autofract.com" };
+function footerFor(source, net) {
+  const key = (source || "").split("-")[0];
+  if (["pinned", "cast", "intro"].includes(key)) return "";
+  const url = PRODUCT_URL[key];
+  if (net === "li") return url && url !== "autofract.com" ? `\n\n→ ${url} · a studio by autofract.com` : "\n\n→ autofract.com";
+  return `\n\n→ ${url || "autofract.com"}`;
+}
+function withFooter(content, source, net, cap) {
+  const f = footerFor(source, net);
+  if (!f) return content;
+  if (cap && content.length + f.length > cap) return content;
+  return content + f;
+}
 async function publish(card) {
   let fileIds = [];
   if (card.image) fileIds = [await uploadMedia(path.join(MEDIA_DIR, card.image))];
   const postAt = card.post_at || new Date(Date.now() + 5 * 60000).toISOString().replace(/\.\d+Z$/, "+00:00");
   const details = [];
-  if (card.linkedin?.trim()) details.push({ account_id: ACCT_LINKEDIN, publication_type: 1, content: card.linkedin, ...(fileIds.length ? { file_ids: fileIds } : {}) });
-  if (card.bluesky?.trim()) details.push({ account_id: ACCT_BLUESKY, publication_type: 1, content: card.bluesky, ...(fileIds.length ? { file_ids: fileIds } : {}) });
+  if (card.linkedin?.trim()) details.push({ account_id: ACCT_LINKEDIN, publication_type: 1, content: withFooter(card.linkedin, card.source, "li"), ...(fileIds.length ? { file_ids: fileIds } : {}) });
+  if (card.bluesky?.trim()) details.push({ account_id: ACCT_BLUESKY, publication_type: 1, content: withFooter(card.bluesky, card.source, "bs", 300), ...(fileIds.length ? { file_ids: fileIds } : {}) });
   if (!details.length) throw new Error("no content for any network");
   const body = { project_id: PMP_PROJECT, post_at: postAt, account_ids: details.map((d) => d.account_id), publication_status: 5, details };
   const pub = await pmp("/publications", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -202,6 +219,8 @@ details.txt pre{white-space:pre-wrap;font:13px/1.5 -apple-system,Segoe UI,Roboto
 <script>
 const app=document.getElementById('app');
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const PURL={relocating:'relocating.app',frontdesk:'frontdeskreview.com',pathcore:'autofract.com'};
+function linkNote(source){const k=(source||'').split('-')[0];if(['pinned','cast','intro'].includes(k))return '';const u=PURL[k]||'autofract.com';return u==='autofract.com'?'→ autofract.com':('→ '+u+' · autofract.com');}
 const NET={2237330:'LinkedIn',2237336:'Bluesky'};
 const ST={1:['posted','st-posted'],2:['publishing','st-wait'],3:['failed','st-failed'],4:['removed','st-wait'],5:['scheduled','st-scheduled'],6:['draft','st-wait']};
 function fmt(t){if(!t)return'';try{return new Date(t).toLocaleString('ru-RU',{timeZone:'Europe/Moscow',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})+' МСК';}catch(e){return String(t);}}
@@ -265,6 +284,7 @@ function queueCard(c){return \`<div class="card" data-id="\${esc(c.id)}">
     <div class="meta"><span class="tag">\${esc(c.source)}</span> \${c.fact?('· '+esc(c.fact)):''}</div>
     <div class="net"><h4>LinkedIn</h4><textarea data-net="linkedin">\${esc(c.linkedin)}</textarea>\${c.linkedin_ru?\`<div class="ru">🇷🇺 \${esc(c.linkedin_ru)}</div>\`:''}</div>
     <div class="net"><h4>Bluesky <span style="color:#847a8c">(≤300)</span></h4><textarea data-net="bluesky">\${esc(c.bluesky)}</textarea>\${c.bluesky_ru?\`<div class="ru">🇷🇺 \${esc(c.bluesky_ru)}</div>\`:''}</div>
+    \${linkNote(c.source)?\`<div class="klist" style="padding:0 16px 4px">🔗 auto-added on publish: \${esc(linkNote(c.source))}</div>\`:''}
     <div class="row">
       <button class="ok" onclick="approve('\${c.id}',this)">Approve → schedule</button>
       <button onclick="saveEdit('\${c.id}',this)">Save edits</button>
