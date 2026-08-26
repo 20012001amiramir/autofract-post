@@ -48,8 +48,12 @@ async function pmp(pathname, opts = {}) {
 }
 async function uploadMedia(filePath) {
   const buf = fs.readFileSync(filePath);
+  // Postmypost derives the media type from the name — a name without a real extension
+  // (e.g. a card saved with image_ext "png" instead of ".png") never finishes processing.
+  const base = path.basename(filePath);
+  const uploadName = /\.[a-z0-9]+$/i.test(base) ? base : base + ".png";
   const init = await pmp("/upload/init", { method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ project_id: PMP_PROJECT, name: path.basename(filePath), size: buf.length }) });
+    body: JSON.stringify({ project_id: PMP_PROJECT, name: uploadName, size: buf.length }) });
   const uploadId = init.json?.id;
   const action = init.json?.action;
   const fields = init.json?.fields || {};
@@ -59,11 +63,11 @@ async function uploadMedia(filePath) {
   const entries = Array.isArray(fields) ? fields.map((f) => [f.key, f.value]) : Object.entries(fields);
   for (const [k, v] of entries) form.append(k, String(v));
   const ct = path.extname(filePath).toLowerCase() === ".mp4" ? "video/mp4" : "image/png";
-  form.append("file", new Blob([buf], { type: ct }), path.basename(filePath));
+  form.append("file", new Blob([buf], { type: ct }), uploadName);
   const s3 = await fetch(action, { method: "POST", body: form });
   if (!s3.ok) throw new Error("S3 upload failed: " + s3.status + " " + (await s3.text()).slice(0, 200));
   await pmp(`/upload/complete?id=${uploadId}`, { method: "POST" });
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 30; i++) {
     await new Promise((r) => setTimeout(r, 3000));
     const st = await pmp(`/upload/status?id=${uploadId}&project_id=${PMP_PROJECT}`);
     if (String(st.json?.status) === "1" && st.json?.file_id) return st.json.file_id;
@@ -139,7 +143,7 @@ const server = http.createServer(async (req, res) => {
     const b = await readBody(req);
     const cards = load();
     let image = null;
-    if (b.image_base64) { image = crypto.randomUUID() + (b.image_ext || ".png"); fs.writeFileSync(path.join(MEDIA_DIR, image), Buffer.from(b.image_base64, "base64")); }
+    if (b.image_base64) { let ext = b.image_ext || ".png"; if (!ext.startsWith(".")) ext = "." + ext; image = crypto.randomUUID() + ext; fs.writeFileSync(path.join(MEDIA_DIR, image), Buffer.from(b.image_base64, "base64")); }
     const card = { id: crypto.randomUUID(), created_at: new Date().toISOString(), status: "pending",
       source: b.source || "manual", fact: b.fact || "",
       linkedin: b.linkedin || "", bluesky: b.bluesky || "",
