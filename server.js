@@ -31,8 +31,9 @@ const load = () => { try { return JSON.parse(fs.readFileSync(DB_FILE, "utf8")); 
 const save = (c) => fs.writeFileSync(DB_FILE, JSON.stringify(c, null, 2));
 const clientIp = (req) => (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").split(",")[0].trim();
 const ipOk = (req) => ALLOWED_IPS.length === 0 || ALLOWED_IPS.includes(clientIp(req));
+// Internal tool: keep it out of search engines entirely.
 const send = (res, code, body, type = "application/json") => {
-  res.writeHead(code, { "Content-Type": type });
+  res.writeHead(code, { "Content-Type": type, "X-Robots-Tag": "noindex, nofollow, noarchive" });
   res.end(typeof body === "string" ? body : JSON.stringify(body));
 };
 const readBody = (req) => new Promise((resolve) => {
@@ -152,6 +153,8 @@ const server = http.createServer(async (req, res) => {
     cards.unshift(card); save(cards);
     return send(res, 200, { ok: true, id: card.id });
   }
+
+  if (p === "/robots.txt") return send(res, 200, "User-agent: *\nDisallow: /\n", "text/plain");
 
   // Public brand reference assets (character / server model sheets, reference clips) — served
   // openly so they can be reused as image references in future generations. No secrets, just art.
