@@ -188,7 +188,7 @@ const server = http.createServer(async (req, res) => {
     if (action === "approve") {
       const b = await readBody(req).catch(() => ({}));
       if (b && b.post_at) card.post_at = b.post_at; // explicit slot overrides the drip cadence
-      try { const r = await publish(card, cards); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; save(cards); return send(res, 200, { ok: true, ...r }); }
+      try { const r = await publish(card, cards); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; card.error = ""; save(cards); return send(res, 200, { ok: true, ...r }); }
       catch (e) { card.status = "error"; card.error = String(e.message || e); save(cards); return send(res, 500, { error: card.error }); }
     }
     // Move an already-scheduled (not yet posted) card to a new slot: drop the old
@@ -198,7 +198,7 @@ const server = http.createServer(async (req, res) => {
       if (!b || !b.post_at) return send(res, 400, { error: "post_at required" });
       if (card.pub_id && card.status === "scheduled") { try { await pmp(`/publications/${card.pub_id}`, { method: "DELETE" }); } catch {} }
       card.post_at = b.post_at;
-      try { const r = await publish(card, cards); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; save(cards); return send(res, 200, { ok: true, ...r }); }
+      try { const r = await publish(card, cards); card.status = "scheduled"; card.pub_id = r.pub_id; card.scheduled_for = r.post_at; card.error = ""; save(cards); return send(res, 200, { ok: true, ...r }); }
       catch (e) { card.status = "error"; card.error = String(e.message || e); save(cards); return send(res, 500, { error: card.error }); }
     }
   }
@@ -294,7 +294,7 @@ function statusCard(c,pubs){
   else if(c.status==='error') badges='<span class="bdg st-failed">error</span>';
   else badges=\`<span class="bdg st-scheduled">\${esc(c.status)}</span>\`;
   const when=fmt((pub&&pub.post_at)||c.scheduled_for||c.post_at);
-  const err=c.error?\`<div class="klist" style="color:var(--bad)">\${esc(c.error)}</div>\`:'';
+  const err=(c.status==='error'&&c.error)?\`<div class="klist" style="color:var(--bad)">\${esc(c.error)}</div>\`:'';
   return \`<div class="scard">
     <div class="meta"><span class="tag">\${esc(c.source)}</span> \${c.fact?('· '+esc(c.fact)):''}</div>
     \${when?\`<div class="when">🗓 \${esc(when)}</div>\`:''}
